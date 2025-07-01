@@ -20,6 +20,7 @@ import (
 
 // ReadRegistryInfo 读取注册表信息
 func ReadRegistryInfo(path, keyword string) map[string]string {
+
 	key, err := registry.OpenKey(registry.LOCAL_MACHINE, path, registry.READ)
 	if err != nil {
 		return nil
@@ -69,9 +70,11 @@ func getSunRegistryInfo(names []string, key registry.Key) map[string]string {
 		if name == "ImagePath" {
 			re := regexp.MustCompile(`"(.*)"`)
 			matches := re.FindStringSubmatch(value)
-			registryInfoMap["程序路径"] = matches[1]
-			registryInfoMap["安装路径"] = filepath.Dir(matches[1])
-			registryInfoMap["配置文件路径"] = filepath.Dir(matches[1]) + "\\config.ini"
+			fmt.Println(matches)
+			sunLoginFilePath := "C:\\Program Files\\Oray\\AweSun\\AweSun\\AweSun.exe"
+			registryInfoMap["程序路径"] = sunLoginFilePath
+			registryInfoMap["安装路径"] = filepath.Dir(sunLoginFilePath)
+			registryInfoMap["配置文件路径"] = filepath.Dir(sunLoginFilePath) + "\\config.ini"
 		}
 	}
 	return registryInfoMap
@@ -152,9 +155,13 @@ func getSunConfigInfo(data string) map[string]string {
 }
 
 func ReadMemoryInfo(keyword, processName string) map[string]string {
+	//fmt.Println("pricessName:")
+	//fmt.Println(processName)
 	memoryInfoMap := make(map[string]string)
 	var passList []string
 	pid := uint32(getProcessPID(processName))
+	//pid = 5452
+	//fmt.Println("pid: ", pid)
 	hProcess, err := windows.OpenProcess(windows.PROCESS_QUERY_INFORMATION|windows.PROCESS_VM_READ, false, pid)
 	if err != nil {
 		fmt.Println("无法打开进程:", err)
@@ -287,6 +294,7 @@ func getProcessPID(processName string) int {
 	scanner := bufio.NewScanner(strings.NewReader(string(out)))
 	for scanner.Scan() {
 		line := scanner.Text()
+		//fmt.Println(line)
 		if strings.Contains(line, processName) && strings.Contains(line, "Console") {
 			parts := strings.Fields(line)
 			if len(parts) > 1 {
