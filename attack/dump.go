@@ -8,6 +8,7 @@ import (
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -154,15 +155,12 @@ func getSunConfigInfo(data string) map[string]string {
 	return configInfoMap
 }
 
-func ReadMemoryInfo(keyword, processName string) map[string]string {
-	//fmt.Println("pricessName:")
-	//fmt.Println(processName)
-	memoryInfoMap := make(map[string]string)
+
+func ReadMemoryInfoByPid(keyword string, pid int) map[string]string {
 	var passList []string
-	pid := uint32(getProcessPID(processName))
-	//pid = 5452
-	//fmt.Println("pid: ", pid)
-	hProcess, err := windows.OpenProcess(windows.PROCESS_QUERY_INFORMATION|windows.PROCESS_VM_READ, false, pid)
+	memoryInfoMap := make(map[string]string)
+	pidU32 := uint32(pid)
+	hProcess, err := windows.OpenProcess(windows.PROCESS_QUERY_INFORMATION|windows.PROCESS_VM_READ, false, pidU32)
 	if err != nil {
 		fmt.Println("无法打开进程:", err)
 		return nil
@@ -225,6 +223,22 @@ func ReadMemoryInfo(keyword, processName string) map[string]string {
 	return nil
 }
 
+func ReadMemoryInfo(keyword, processName string) map[string]string {
+	//fmt.Println("pricessName:")
+	//fmt.Println(processName)
+	memoryInfoMap := make(map[string]string)
+
+	pidList := getProcessPIDList(processName)
+	for _, pid := range pidList {
+		info := ReadMemoryInfoByPid(keyword, pid)
+		code := info["设备识别码"]
+		if code != "" {
+			return info
+		}
+	}
+	return memoryInfoMap
+}
+
 func getToDeskMemoryInfo(buffer []byte) string {
 	reg := regexp.MustCompile(`[A-Za-z\d]{8}`)
 
@@ -283,6 +297,32 @@ func removeDuplicates(slice []string) []string {
 		}
 	}
 	return uniqueSlice
+}
+
+
+func getProcessPIDList(processName string) []int {
+	pidList := []int{}
+	cmd := exec.Command("tasklist")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return pidList
+	}
+	scanner := bufio.NewScanner(strings.NewReader(string(out)))
+	for scanner.Scan() {
+		line := scanner.Text()
+		//fmt.Println(line)
+		if strings.Contains(line, processName) && (strings.Contains(line, "Console") || strings.Contains(line, "RDP")){
+			parts := strings.Fields(line)
+			if len(parts) > 1 {
+				pid, err := strconv.Atoi(parts[1])
+				if err == nil {
+					log.Print("found pid: ", pid)
+					pidList = append(pidList, pid)
+				}
+			}
+		}
+	}
+	return pidList
 }
 
 func getProcessPID(processName string) int {

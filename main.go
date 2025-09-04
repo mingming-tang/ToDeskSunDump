@@ -5,10 +5,21 @@ import (
 	"ToDeskSunDump/util"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 )
 
 func main() {
+	file, err := os.OpenFile("C:\\cloud\\to_desk_sun_dump.log",
+		os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatal("Failed to open log file:", err)
+	}
+	defer file.Close()
+
+	// Redirect standard logger to the file
+	log.SetOutput(file)
+
 	var SunDumpStatus bool
 	var ToDeskDumpStatus bool
 
@@ -93,10 +104,6 @@ func toDeskFormatPrintf(registryInfoMap, configInfoMap, memoryInfoMap map[string
 
 func sunFormatPrintf(registryInfoMap, configInfoMap, memoryInfoMap map[string]string) {
 	fmt.Println("------------------------------------------")
-	fmt.Println("软件名称:", util.SunName)
-	fmt.Println("程序路径:", registryInfoMap["程序路径"])
-	fmt.Println("安装路径:", registryInfoMap["安装路径"])
-	fmt.Println("配置文件路径:", registryInfoMap["配置文件路径"])
 	fmt.Println("账号:", configInfoMap["账号"])
 	fmt.Println("版本号:", configInfoMap["版本号"])
 	fmt.Println("设备识别码:", memoryInfoMap["设备识别码"])
